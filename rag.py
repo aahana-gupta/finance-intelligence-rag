@@ -2,23 +2,31 @@ import faiss
 import numpy as np
 import pickle
 import os
+import json
+from openai import OpenAI
+from groq import Groq
 from dotenv import load_dotenv
 load_dotenv()
-from sentence_transformers import SentenceTransformer
-from groq import Groq
 
-model = SentenceTransformer("all-MiniLM-L6-v2")
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 def get_available_documents():
     return [f.replace(".faiss", "") for f in os.listdir(".") if f.endswith(".faiss")]
+
+def get_embedding(text):
+    response = openai_client.embeddings.create(
+        model="text-embedding-3-small",
+        input=[text]
+    )
+    return response.data[0].embedding
 
 def retrieve_from_document(query, doc_name, top_k=3):
     index = faiss.read_index(f"{doc_name}.faiss")
     with open(f"{doc_name}.pkl", "rb") as f:
         chunks = pickle.load(f)
-    query_embedding = model.encode([query])
-    distances, indices = index.search(np.array(query_embedding), top_k)
+    query_embedding = np.array([get_embedding(query)]).astype("float32")
+    distances, indices = index.search(query_embedding, top_k)
     return [chunks[i] for i in indices[0]]
 
 def generate_answer(query, doc_names=None):
@@ -39,7 +47,7 @@ Question: {query}
 
 Answer:"""
 
-    response = client.chat.completions.create(
+    response = groq_client.chat.completions.create(
         model="llama-3.1-8b-instant",
         messages=[{"role": "user", "content": prompt}]
     )
@@ -48,19 +56,17 @@ Answer:"""
 def generate_risk_flags(doc_names=None):
     if doc_names is None:
         doc_names = get_available_documents()
-    
+
     all_flags = {}
-    
+
     for doc in doc_names:
-        index = faiss.read_index(f"{doc}.faiss")
         with open(f"{doc}.pkl", "rb") as f:
             chunks = pickle.load(f)
-        
-        # Use first 20 chunks as representative sample
+
         sample_text = "\n\n".join(chunks[:20])
-        
-        prompt = f"""You are a financial risk analyst. Analyze the following earnings call transcript excerpt and identify red flags or risks. 
-        
+
+        prompt = f"""You are a financial risk analyst. Analyze the following earnings call transcript excerpt and identify red flags or risks.
+
 Look for: revenue misses, margin pressure, declining growth, client losses, weak guidance, macroeconomic concerns, litigation, leadership changes, or any cautionary language.
 
 Return a JSON array of objects with keys "flag" (short title) and "detail" (one sentence explanation). Return only JSON, no other text.
@@ -68,17 +74,16 @@ Return a JSON array of objects with keys "flag" (short title) and "detail" (one 
 Transcript:
 {sample_text}"""
 
-        response = client.chat.completions.create(
+        response = groq_client.chat.completions.create(
             model="llama-3.1-8b-instant",
             messages=[{"role": "user", "content": prompt}]
         )
-        
-        import json
+
         try:
             flags = json.loads(response.choices[0].message.content)
         except:
             flags = [{"flag": "Parse error", "detail": "Could not extract flags"}]
-        
+
         all_flags[doc] = flags
-    
+
     return all_flags
