@@ -40,7 +40,7 @@ with st.sidebar:
     if uploaded_file:
         with st.spinner("Indexing..."):
             response = requests.post(
-                "http://127.0.0.1:8000/upload",
+                "https://finance-intelligence-rag.onrender.com",
                 files={"file": (uploaded_file.name, uploaded_file, "application/pdf")}
             )
         if response.status_code == 200:
@@ -49,7 +49,7 @@ with st.sidebar:
     st.divider()
 
     st.markdown("### Indexed Documents")
-    docs_response = requests.get("http://127.0.0.1:8000/documents")
+    docs_response = requests.get("https://finance-intelligence-rag.onrender.com/documents")
     if docs_response.status_code == 200:
         docs = docs_response.json()["documents"]
         if docs:
@@ -63,7 +63,7 @@ with st.sidebar:
     st.markdown("### Risk Analysis")
     if st.button("Generate Risk Flags"):
         with st.spinner("Analyzing..."):
-            risk_response = requests.get("http://127.0.0.1:8000/risks")
+            risk_response = requests.get("https://finance-intelligence-rag.onrender.com/risks")
         if risk_response.status_code == 200:
             st.session_state.risks = risk_response.json()["risks"]
 
@@ -102,7 +102,7 @@ if question:
 
     with st.spinner("Thinking..."):
         response = requests.post(
-            "http://127.0.0.1:8000/ask",
+            "https://finance-intelligence-rag.onrender.com/ask",
             json={"question": question}
         )
 
