@@ -1,0 +1,9 @@
+pymupdf
+sentence-transformers
+faiss-cpu
+groq
+fastapi
+uvicorn
+python-multipart
+streamlit
+python-dotenv
