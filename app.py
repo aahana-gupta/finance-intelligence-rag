@@ -24,6 +24,7 @@ st.markdown("""
     div[data-testid="stSidebarContent"] { padding: 1.5rem 1rem; }
     h1, h2, h3 { font-family: 'Space Mono', monospace; font-weight: 700; color: #ffffff; letter-spacing: 1px; text-transform: uppercase; }
     .stSuccess { background-color: #1e2d1e; }
+    section[data-testid="stFileUploadDropzone"] { background-color: #2c2c2e !important; border: 1px solid #444 !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -71,7 +72,6 @@ st.markdown("## Finance Intelligence Assistant")
 st.caption("Ask questions across all uploaded earnings call transcripts")
 st.divider()
 
-# Risk flags in main area
 if "risks" in st.session_state:
     st.markdown("### Risk Flags")
     for doc, flags in st.session_state.risks.items():
@@ -85,22 +85,20 @@ if "risks" in st.session_state:
                 )
     st.divider()
 
-# Chat history
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
 for msg in st.session_state.messages:
     if msg["role"] == "user":
-        st.markdown(f'<div class="chat-message-user"> {msg["content"]}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="chat-message-user">{msg["content"]}</div>', unsafe_allow_html=True)
     else:
-        st.markdown(f'<div class="chat-message-assistant"> {msg["content"]}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="chat-message-assistant">{msg["content"]}</div>', unsafe_allow_html=True)
 
-# Input
 question = st.chat_input("Ask a question about your documents...")
 
 if question:
     st.session_state.messages.append({"role": "user", "content": question})
-    st.markdown(f'<div class="chat-message-user"> {question}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="chat-message-user">{question}</div>', unsafe_allow_html=True)
 
     with st.spinner("Thinking..."):
         response = requests.post(
@@ -111,6 +109,6 @@ if question:
     if response.status_code == 200:
         answer = response.json()["answer"]
         st.session_state.messages.append({"role": "assistant", "content": answer})
-        st.markdown(f'<div class="chat-message-assistant"> {answer}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="chat-message-assistant">{answer}</div>', unsafe_allow_html=True)
     else:
         st.error("Something went wrong")
