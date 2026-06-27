@@ -1,0 +1,7 @@
+.env
+*.faiss
+*.pkl
+*.pdf
+__pycache__/
+.DS_Store
+chunks.pkl
