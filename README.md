@@ -1,6 +1,11 @@
 # Finance Intelligence Assistant
 
-An AI-powered financial document analysis tool built for the EY Finance Operations value chain. Upload earnings call transcripts and annual reports to query, compare, and identify risks across multiple companies using a Retrieval-Augmented Generation (RAG) pipeline.
+An AI-powered financial document analysis tool built as part of an EY internship project on **"Use of GenAI in the Finance Operations Value Chain"**. Upload earnings call transcripts and annual reports to query, compare, and identify risks across multiple companies using a Retrieval-Augmented Generation (RAG) pipeline.
+
+## Demo
+
+![Risk Flags](demo1.webp)
+![QA Interface](demo2.webp)
 
 ## Features
 
@@ -25,35 +30,23 @@ An AI-powered financial document analysis tool built for the EY Finance Operatio
 - `rag.py` — Retrieval and answer generation
 - `main.py` — FastAPI backend
 - `app.py` — Streamlit frontend
-- `.streamlit/config.toml` — UI theme configuration 
+- `.streamlit/config.toml` — UI theme configuration
+
+## Deployment
+
+- **Frontend:** [https://finance-intelligence-rag-frontend.onrender.com](https://finance-intelligence-rag-frontend.onrender.com)
+- **Backend:** Runs locally due to memory constraints on free hosting tiers. Sentence Transformers requires ~400MB RAM which exceeds the 512MB limit on Render's free plan.
+
+To run the backend locally:
+```bash
+uvicorn main:app --reload
+```
 
 ## Setup
 
 1. Clone the repo
 2. Install dependencies:
 ```bash
-   pip install pymupdf sentence-transformers faiss-cpu groq fastapi uvicorn python-multipart streamlit python-dotenv
+pip install -r requirements.txt
 ```
 3. Create a `.env` file:
-GROQ_API_KEY=your-groq-api-key
-4. Run the backend:
-```bash
-   uvicorn main:app --reload
-```
-5. Run the frontend:
-```bash
-   streamlit run app.py
-```
-
-## Usage
-
-1. Upload one or more earnings call transcript PDFs via the sidebar
-2. Ask questions in the chat — the system retrieves relevant chunks and generates grounded answers
-3. Click **Generate Risk Flags** to automatically surface financial red flags across all documents
-
-## Sample Queries
-
-- "What was TCS revenue this quarter?"
-- "Compare TCS and Infosys revenue growth"
-- "What are the key risks mentioned by Infosys management?"
-- "What is the operating margin guidance for next year?"
