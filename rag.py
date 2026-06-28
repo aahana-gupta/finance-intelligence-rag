@@ -3,23 +3,22 @@ import numpy as np
 import pickle
 import os
 import json
-from openai import OpenAI
+import requests
 from groq import Groq
 from dotenv import load_dotenv
 load_dotenv()
 
-openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+HF_TOKEN = os.getenv("HF_TOKEN")
+API_URL = "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2"
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 def get_available_documents():
     return [f.replace(".faiss", "") for f in os.listdir(".") if f.endswith(".faiss")]
 
 def get_embedding(text):
-    response = openai_client.embeddings.create(
-        model="text-embedding-3-small",
-        input=[text]
-    )
-    return response.data[0].embedding
+    headers = {"Authorization": f"Bearer {HF_TOKEN}"}
+    response = requests.post(API_URL, headers=headers, json={"inputs": [text], "options": {"wait_for_model": True}})
+    return response.json()[0]
 
 def retrieve_from_document(query, doc_name, top_k=3):
     index = faiss.read_index(f"{doc_name}.faiss")

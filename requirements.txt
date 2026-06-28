@@ -6,4 +6,4 @@ uvicorn
 python-multipart
 streamlit
 python-dotenv
-openai
+requests

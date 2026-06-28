@@ -2,19 +2,18 @@ import faiss
 import numpy as np
 import pickle
 import os
-from openai import OpenAI
+import requests
 from ingest import extract_text_from_pdf, chunk_text
 from dotenv import load_dotenv
 load_dotenv()
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+HF_TOKEN = os.getenv("HF_TOKEN")
+API_URL = "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2"
 
 def get_embeddings(texts):
-    response = client.embeddings.create(
-        model="text-embedding-3-small",
-        input=texts
-    )
-    return [item.embedding for item in response.data]
+    headers = {"Authorization": f"Bearer {HF_TOKEN}"}
+    response = requests.post(API_URL, headers=headers, json={"inputs": texts, "options": {"wait_for_model": True}})
+    return response.json()
 
 def build_index(pdf_path):
     text = extract_text_from_pdf(pdf_path)
