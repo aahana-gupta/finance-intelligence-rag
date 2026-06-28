@@ -3,23 +3,30 @@ import numpy as np
 import pickle
 import os
 import json
-from sentence_transformers import SentenceTransformer
+import google.generativeai as genai
 from groq import Groq
 from dotenv import load_dotenv
 load_dotenv()
 
-model = SentenceTransformer("all-MiniLM-L6-v2")
+genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 def get_available_documents():
     return [f.replace(".faiss", "") for f in os.listdir(".") if f.endswith(".faiss")]
 
+def get_embedding(text):
+    result = genai.embed_content(
+        model="models/text-embedding-004",
+        content=text
+    )
+    return result['embedding']
+
 def retrieve_from_document(query, doc_name, top_k=3):
     index = faiss.read_index(f"{doc_name}.faiss")
     with open(f"{doc_name}.pkl", "rb") as f:
         chunks = pickle.load(f)
-    query_embedding = model.encode([query])
-    distances, indices = index.search(np.array(query_embedding), top_k)
+    query_embedding = np.array([get_embedding(query)]).astype("float32")
+    distances, indices = index.search(query_embedding, top_k)
     return [chunks[i] for i in indices[0]]
 
 def generate_answer(query, doc_names=None):

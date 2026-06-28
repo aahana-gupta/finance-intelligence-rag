@@ -6,5 +6,4 @@ uvicorn
 python-multipart
 streamlit
 python-dotenv
-sentence-transformers
-torch --index-url https://download.pytorch.org/whl/cpu
+google-generativeai
