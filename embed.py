@@ -1,29 +1,17 @@
+from sentence_transformers import SentenceTransformer
 import faiss
 import numpy as np
 import pickle
 import os
-import google.generativeai as genai
 from ingest import extract_text_from_pdf, chunk_text
-from dotenv import load_dotenv
-load_dotenv()
 
-genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-
-def get_embeddings(texts):
-    embeddings = []
-    for text in texts:
-        result = genai.embed_content(
-            model="models/text-embedding-004",
-            content=text
-        )
-        embeddings.append(result['embedding'])
-    return embeddings
+model = SentenceTransformer("all-MiniLM-L6-v2")
 
 def build_index(pdf_path):
     text = extract_text_from_pdf(pdf_path)
     chunks = chunk_text(text)
 
-    embeddings = get_embeddings(chunks)
+    embeddings = model.encode(chunks, show_progress_bar=False)
     embeddings_np = np.array(embeddings).astype("float32")
 
     dimension = embeddings_np.shape[1]
