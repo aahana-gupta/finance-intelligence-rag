@@ -1,25 +1,17 @@
+from sentence_transformers import SentenceTransformer
 import faiss
 import numpy as np
 import pickle
 import os
-import requests
 from ingest import extract_text_from_pdf, chunk_text
-from dotenv import load_dotenv
-load_dotenv()
 
-HF_TOKEN = os.getenv("HF_TOKEN")
-API_URL = "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2"
-
-def get_embeddings(texts):
-    headers = {"Authorization": f"Bearer {HF_TOKEN}"}
-    response = requests.post(API_URL, headers=headers, json={"inputs": texts, "options": {"wait_for_model": True}})
-    return response.json()
+model = SentenceTransformer("all-MiniLM-L6-v2")
 
 def build_index(pdf_path):
     text = extract_text_from_pdf(pdf_path)
     chunks = chunk_text(text)
 
-    embeddings = get_embeddings(chunks)
+    embeddings = model.encode(chunks, show_progress_bar=False)
     embeddings_np = np.array(embeddings).astype("float32")
 
     dimension = embeddings_np.shape[1]
