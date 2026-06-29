@@ -34,13 +34,12 @@ An AI-powered financial document analysis tool built as part of an EY internship
 
 ## Deployment
 
-- **Frontend:** [https://finance-intelligence-rag-frontend.onrender.com](https://finance-intelligence-rag-frontend.onrender.com)
-- **Backend:** Runs locally due to memory constraints on free hosting tiers. Sentence Transformers requires ~400MB RAM which exceeds the 512MB limit on Render's free plan.
+- **Frontend:** Deployed on Render at [https://finance-intelligence-rag-frontend.onrender.com](https://finance-intelligence-rag-frontend.onrender.com) — note this requires the backend running locally to function
+- **Backend:** Runs locally due to memory constraints on free hosting tiers (Sentence Transformers requires ~400MB RAM, exceeding Render's 512MB free plan limit)
 
-To run the backend locally:
-```bash
-uvicorn main:app --reload
-```
+**To run the full app:**
+1. Start the backend locally: `uvicorn main:app --reload`
+2. Open `http://localhost:8501` in your browser
 
 ## Setup
 
