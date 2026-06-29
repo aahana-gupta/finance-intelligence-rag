@@ -38,8 +38,9 @@ An AI-powered financial document analysis tool built as part of an EY internship
 - **Backend:** Runs locally due to memory constraints on free hosting tiers (Sentence Transformers requires ~400MB RAM, exceeding Render's 512MB free plan limit)
 
 **To run the full app:**
-1. Start the backend locally: `uvicorn main:app --reload`
-2. Open `http://localhost:8501` in your browser
+1. Start the backend: `uvicorn main:app --reload`
+2. Start the frontend: `streamlit run app.py`
+3. Open `http://localhost:8501` in your browser
 
 ## Setup
 
