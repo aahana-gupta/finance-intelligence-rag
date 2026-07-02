@@ -4,11 +4,13 @@ import numpy as np
 import pickle
 import os
 from ingest import extract_text_from_pdf, chunk_text
+from rag import check_prompt_injection
 
 model = SentenceTransformer("all-MiniLM-L6-v2")
 
 def build_index(pdf_path):
     text = extract_text_from_pdf(pdf_path)
+    check_prompt_injection(text)
     chunks = chunk_text(text)
 
     embeddings = model.encode(chunks, show_progress_bar=False)

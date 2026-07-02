@@ -1,9 +1,6 @@
 pymupdf
 faiss-cpu
 groq
-fastapi
-uvicorn
-python-multipart
 streamlit
 python-dotenv
 sentence-transformers

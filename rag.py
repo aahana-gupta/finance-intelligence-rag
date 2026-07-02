@@ -11,6 +11,21 @@ load_dotenv()
 model = SentenceTransformer("all-MiniLM-L6-v2")
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
+INJECTION_PATTERNS = [
+    "ignore previous instructions",
+    "ignore all previous instructions",
+    "system prompt",
+    "jailbreak",
+    "disregard",
+    "forget previous",
+]
+
+def check_prompt_injection(text):
+    lower = text.lower()
+    for pattern in INJECTION_PATTERNS:
+        if pattern in lower:
+            raise ValueError(f"Potential prompt injection detected in document: '{pattern}'")
+
 def get_available_documents():
     return [f.replace(".faiss", "") for f in os.listdir(".") if f.endswith(".faiss")]
 
@@ -31,7 +46,7 @@ def generate_answer(query, doc_names=None):
         chunks = retrieve_from_document(query, doc)
         all_context += f"\n\n--- From {doc} ---\n" + "\n\n".join(chunks)
 
-    prompt = f"""You are a financial analyst assistant. Use the following excerpts from earnings call transcripts to answer the question. When comparing companies, clearly label which information comes from which company.
+    prompt = f"""You are a financial analyst assistant. Use the following excerpts from earnings call transcripts to answer the question. When comparing companies, clearly label which information comes from which company. Only use the provided context. If the answer is not in the context, say: I don't have enough information to answer this based on the provided documents.
 
 Context:
 {all_context}
@@ -44,7 +59,9 @@ Answer:"""
         model="llama-3.1-8b-instant",
         messages=[{"role": "user", "content": prompt}]
     )
-    return response.choices[0].message.content
+    answer = response.choices[0].message.content
+    sources = ", ".join(doc_names)
+    return f"{answer}\n\nSources: {sources}"
 
 def generate_risk_flags(doc_names=None):
     if doc_names is None:
