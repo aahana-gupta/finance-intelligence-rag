@@ -1,3 +1,13 @@
+---
+title: Finance Intelligence RAG
+emoji: 📊
+colorFrom: gray
+colorTo: black
+sdk: docker
+pinned: false
+---
+
+
 # Finance Intelligence Assistant
 
 An AI-powered financial document analysis tool built as part of an EY internship project on **"Use of GenAI in the Finance Operations Value Chain"**. Upload earnings call transcripts and annual reports to query, compare, and identify risks across multiple companies using a Retrieval-Augmented Generation (RAG) pipeline.
