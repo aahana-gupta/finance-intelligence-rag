@@ -12,10 +12,13 @@ class QueryRequest(BaseModel):
 
 @app.post("/upload")
 async def upload_pdf(file: UploadFile = File(...)):
-    pdf_path = file.filename
-    with open(pdf_path, "wb") as f:
-        shutil.copyfileobj(file.file, f)
-    build_index(pdf_path)
+    contents = await file.read()
+    import tempfile
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+        tmp.write(contents)
+        tmp_path = tmp.name
+    build_index(tmp_path)
+    os.remove(tmp_path)
     return {"message": "PDF uploaded and indexed successfully"}
 
 @app.get("/documents")
