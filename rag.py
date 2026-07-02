@@ -27,11 +27,11 @@ def check_prompt_injection(text):
             raise ValueError(f"Potential prompt injection detected in document: '{pattern}'")
 
 def get_available_documents():
-    return [f.replace(".faiss", "") for f in os.listdir("/tmp") if f.endswith(".faiss")]
+    return [f.replace(".faiss", "") for f in os.listdir(".") if f.endswith(".faiss")]
 
 def retrieve_from_document(query, doc_name, top_k=3):
-    index = faiss.read_index(f"/tmp/{doc_name}.faiss")
-    with open(f"/tmp/{doc_name}.pkl", "rb") as f:
+    index = faiss.read_index(f"{doc_name}.faiss")
+    with open(f"{doc_name}.pkl", "rb") as f:
         chunks = pickle.load(f)
     query_embedding = model.encode([query])
     distances, indices = index.search(np.array(query_embedding), top_k)
@@ -70,7 +70,7 @@ def generate_risk_flags(doc_names=None):
     all_flags = {}
 
     for doc in doc_names:
-        with open(f"/tmp/{doc}.pkl", "rb") as f:
+        with open(f"{doc}.pkl", "rb") as f:
             chunks = pickle.load(f)
 
         sample_text = "\n\n".join(chunks[:20])

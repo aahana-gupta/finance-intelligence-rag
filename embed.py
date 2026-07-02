@@ -21,8 +21,8 @@ def build_index(pdf_path):
     index.add(embeddings_np)
 
     base_name = os.path.splitext(os.path.basename(pdf_path))[0]
-    faiss.write_index(index, f"/tmp/{base_name}.faiss")
-    with open(f"/tmp/{base_name}.pkl", "wb") as f:
+    faiss.write_index(index, f"{base_name}.faiss")
+    with open(f"{base_name}.pkl", "wb") as f:
         pickle.dump(chunks, f)
 
     print(f"Index built for {base_name} with {index.ntotal} vectors")

@@ -1,21 +1,5 @@
 import streamlit as st
-import tempfile
-import time
-import os
-from embed import build_index
-from rag import generate_answer, get_available_documents, generate_risk_flags
-
-MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10MB
-
-def check_rate_limit():
-    now = time.time()
-    if "request_timestamps" not in st.session_state:
-        st.session_state.request_timestamps = []
-    st.session_state.request_timestamps = [t for t in st.session_state.request_timestamps if now - t < 60]
-    if len(st.session_state.request_timestamps) >= 10:
-        return False
-    st.session_state.request_timestamps.append(now)
-    return True
+import requests
 
 st.set_page_config(
     page_title="Finance Intelligence Assistant",
@@ -54,35 +38,27 @@ with st.sidebar:
     uploaded_file = st.file_uploader("", type="pdf", label_visibility="collapsed")
 
     if uploaded_file:
-        if not check_rate_limit():
-            st.error("Rate limit exceeded, please wait.")
-        elif not uploaded_file.name.lower().endswith(".pdf"):
-            st.error("Only PDF files are allowed")
-        elif uploaded_file.size > MAX_UPLOAD_SIZE:
-            st.error("File exceeds 10MB size limit")
-        else:
-            with st.spinner("Indexing..."):
-                tmp_path = None
-                try:
-                    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-                        tmp.write(uploaded_file.read())
-                        tmp_path = tmp.name
-                    build_index(tmp_path)
-                    st.success("Indexed successfully")
-                except ValueError as e:
-                    st.error(str(e))
-                finally:
-                    if tmp_path:
-                        os.remove(tmp_path)
+        with st.spinner("Indexing..."):
+            response = requests.post(
+                "http://127.0.0.1:8000/upload",
+                files={"file": (uploaded_file.name, uploaded_file, "application/pdf")}
+            )
+        if response.status_code == 200:
+            st.success("Indexed successfully")
 
     st.divider()
 
     st.markdown("### Indexed Documents")
-    docs = get_available_documents()
-    if docs:
-        for doc in docs:
-            st.markdown(f'<div class="doc-badge">📄 {doc}</div>', unsafe_allow_html=True)
-    else:
+    try:
+        docs_response = requests.get("http://127.0.0.1:8000/documents")
+        if docs_response.status_code == 200:
+            docs = docs_response.json()["documents"]
+            if docs:
+                for doc in docs:
+                    st.markdown(f'<div class="doc-badge">📄 {doc}</div>', unsafe_allow_html=True)
+            else:
+                st.caption("No documents yet")
+    except:
         st.caption("No documents yet")
 
     st.divider()
@@ -90,7 +66,9 @@ with st.sidebar:
     st.markdown("### Risk Analysis")
     if st.button("Generate Risk Flags"):
         with st.spinner("Analyzing..."):
-            st.session_state.risks = generate_risk_flags()
+            risk_response = requests.get("http://127.0.0.1:8000/risks")
+        if risk_response.status_code == 200:
+            st.session_state.risks = risk_response.json()["risks"]
 
 # Main area
 st.markdown("## Finance Intelligence Assistant")
@@ -125,11 +103,15 @@ if question:
     st.session_state.messages.append({"role": "user", "content": question})
     st.markdown(f'<div class="chat-message-user">{question}</div>', unsafe_allow_html=True)
 
-    if not check_rate_limit():
-        st.error("Rate limit exceeded, please wait.")
-    else:
-        with st.spinner("Thinking..."):
-            answer = generate_answer(question)
+    with st.spinner("Thinking..."):
+        response = requests.post(
+            "http://127.0.0.1:8000/ask",
+            json={"question": question}
+        )
 
+    if response.status_code == 200:
+        answer = response.json()["answer"]
         st.session_state.messages.append({"role": "assistant", "content": answer})
         st.markdown(f'<div class="chat-message-assistant">{answer}</div>', unsafe_allow_html=True)
+    else:
+        st.error("Something went wrong")
