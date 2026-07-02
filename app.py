@@ -49,14 +49,17 @@ with st.sidebar:
     st.divider()
 
     st.markdown("### Indexed Documents")
-    docs_response = requests.get("http://127.0.0.1:8000/documents")
-    if docs_response.status_code == 200:
-        docs = docs_response.json()["documents"]
-        if docs:
-            for doc in docs:
-                st.markdown(f'<div class="doc-badge">📄 {doc}</div>', unsafe_allow_html=True)
-        else:
-            st.caption("No documents yet")
+    try:
+        docs_response = requests.get("http://127.0.0.1:8000/documents")
+        if docs_response.status_code == 200:
+            docs = docs_response.json()["documents"]
+            if docs:
+                for doc in docs:
+                    st.markdown(f'<div class="doc-badge">📄 {doc}</div>', unsafe_allow_html=True)
+            else:
+                st.caption("No documents yet")
+    except:
+        st.caption("No documents yet")
 
     st.divider()
 
