@@ -2,11 +2,10 @@
 title: Finance Intelligence RAG
 emoji: 📊
 colorFrom: gray
-colorTo: black
+colorTo: gray
 sdk: docker
 pinned: false
 ---
-
 
 # Finance Intelligence Assistant
 
