@@ -4,8 +4,8 @@ An AI-powered financial document analysis tool built as part of an EY internship
 
 ## Demo
 
-![Risk Flags](demo1.webp)
-![QA Interface](demo2.webp)
+![Risk Flags](demo1.png)
+![QA Interface](demo2.png)
 
 ## Features
 
