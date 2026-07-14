@@ -1,5 +1,11 @@
 import streamlit as st
 import requests
+import os
+
+# Backend URL is configurable so this works both locally (FastAPI on localhost)
+# and in production (FastAPI deployed on Render with a real public URL).
+# Set BACKEND_URL as an environment variable when deploying; defaults to localhost for local dev.
+BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
 
 st.set_page_config(
     page_title="Finance Intelligence Assistant",
@@ -40,7 +46,7 @@ with st.sidebar:
     if uploaded_file:
         with st.spinner("Indexing..."):
             response = requests.post(
-                "http://127.0.0.1:8000/upload",
+                f"{BACKEND_URL}/upload",
                 files={"file": (uploaded_file.name, uploaded_file, "application/pdf")}
             )
         if response.status_code == 200:
@@ -50,7 +56,7 @@ with st.sidebar:
 
     st.markdown("### Indexed Documents")
     try:
-        docs_response = requests.get("http://127.0.0.1:8000/documents")
+        docs_response = requests.get(f"{BACKEND_URL}/documents")
         if docs_response.status_code == 200:
             docs = docs_response.json()["documents"]
             if docs:
@@ -66,7 +72,7 @@ with st.sidebar:
     st.markdown("### Risk Analysis")
     if st.button("Generate Risk Flags"):
         with st.spinner("Analyzing..."):
-            risk_response = requests.get("http://127.0.0.1:8000/risks")
+            risk_response = requests.get(f"{BACKEND_URL}/risks")
         if risk_response.status_code == 200:
             st.session_state.risks = risk_response.json()["risks"]
 
@@ -105,7 +111,7 @@ if question:
 
     with st.spinner("Thinking..."):
         response = requests.post(
-            "http://127.0.0.1:8000/ask",
+            f"{BACKEND_URL}/ask",
             json={"question": question}
         )
 

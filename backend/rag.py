@@ -3,7 +3,7 @@ import json
 from groq import Groq
 from dotenv import load_dotenv
 from qdrant_client.models import Filter, FieldCondition, MatchValue
-from db import client, COLLECTION_NAME, embedding_model as model
+from backend.db import client, COLLECTION_NAME, embedding_model as model
 load_dotenv()
 
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))

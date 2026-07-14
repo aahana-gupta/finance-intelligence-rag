@@ -2,9 +2,9 @@ import numpy as np
 import os
 import uuid
 from qdrant_client.models import PointStruct, Filter, FieldCondition, MatchValue
-from ingest import extract_text_from_pdf, chunk_text
-from rag import check_prompt_injection
-from db import client, ensure_collection, COLLECTION_NAME, embedding_model as model
+from backend.ingest import extract_text_from_pdf, chunk_text
+from backend.rag import check_prompt_injection
+from backend.db import client, ensure_collection, COLLECTION_NAME, embedding_model as model
 
 def build_index(pdf_path):
     text = extract_text_from_pdf(pdf_path)
