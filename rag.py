@@ -1,11 +1,10 @@
-import faiss
-import numpy as np
-import pickle
 import os
 import json
 from sentence_transformers import SentenceTransformer
 from groq import Groq
 from dotenv import load_dotenv
+from qdrant_client.models import Filter, FieldCondition, MatchValue
+from db import client, COLLECTION_NAME
 load_dotenv()
 
 model = SentenceTransformer("all-MiniLM-L6-v2")
@@ -27,23 +26,60 @@ def check_prompt_injection(text):
             raise ValueError(f"Potential prompt injection detected in document: '{pattern}'")
 
 def get_available_documents():
-    return [f.replace(".faiss", "") for f in os.listdir(".") if f.endswith(".faiss")]
+    """Returns the distinct doc_name values currently stored in the Qdrant collection."""
+    if not client.collection_exists(COLLECTION_NAME):
+        return []
+    doc_names = set()
+    next_offset = None
+    while True:
+        records, next_offset = client.scroll(
+            collection_name=COLLECTION_NAME,
+            with_payload=True,
+            with_vectors=False,
+            limit=200,
+            offset=next_offset,
+        )
+        for r in records:
+            doc_names.add(r.payload["doc_name"])
+        if next_offset is None:
+            break
+    return sorted(doc_names)
 
 def retrieve_from_document(query, doc_name, top_k=3):
-    index = faiss.read_index(f"{doc_name}.faiss")
-    with open(f"{doc_name}.pkl", "rb") as f:
-        chunks = pickle.load(f)
-    query_embedding = model.encode([query])
-    distances, indices = index.search(np.array(query_embedding), top_k)
-    return [chunks[i] for i in indices[0]]
+    query_embedding = model.encode([query])[0].tolist()
+    results = client.query_points(
+        collection_name=COLLECTION_NAME,
+        query=query_embedding,
+        query_filter=Filter(
+            must=[FieldCondition(key="doc_name", match=MatchValue(value=doc_name))]
+        ),
+        limit=top_k,
+    )
+    return [point.payload["text"] for point in results.points]
+
+def get_chunks_for_document(doc_name, limit=20):
+    """Returns the first `limit` chunks (by original order) for a document, used for risk analysis."""
+    records, _ = client.scroll(
+        collection_name=COLLECTION_NAME,
+        scroll_filter=Filter(
+            must=[FieldCondition(key="doc_name", match=MatchValue(value=doc_name))]
+        ),
+        with_payload=True,
+        with_vectors=False,
+        limit=1000,
+    )
+    records_sorted = sorted(records, key=lambda r: r.payload.get("chunk_index", 0))
+    return [r.payload["text"] for r in records_sorted[:limit]]
 
 def generate_answer(query, doc_names=None):
     if doc_names is None:
         doc_names = get_available_documents()
 
     all_context = ""
+    retrieved_chunks = []  # flat list of raw retrieved chunk text, needed for eval (e.g. Ragas contexts)
     for doc in doc_names:
         chunks = retrieve_from_document(query, doc)
+        retrieved_chunks.extend(chunks)
         all_context += f"\n\n--- From {doc} ---\n" + "\n\n".join(chunks)
 
     prompt = f"""You are a financial analyst assistant. Use the following excerpts from earnings call transcripts to answer the question. When comparing companies, clearly label which information comes from which company. Only use the provided context. If the answer is not in the context, say: I don't have enough information to answer this based on the provided documents.
@@ -59,9 +95,15 @@ Answer:"""
         model="llama-3.1-8b-instant",
         messages=[{"role": "user", "content": prompt}]
     )
-    answer = response.choices[0].message.content
+    raw_answer = response.choices[0].message.content
     sources = ", ".join(doc_names)
-    return f"{answer}\n\nSources: {sources}"
+
+    return {
+        "answer": f"{raw_answer}\n\nSources: {sources}",  # keeps existing UI behavior (Streamlit displays this as-is)
+        "raw_answer": raw_answer,      # answer text without the appended sources line, useful for eval
+        "contexts": retrieved_chunks,  # clean list of retrieved chunk strings, required by Ragas-style evals
+        "sources": doc_names,
+    }
 
 def generate_risk_flags(doc_names=None):
     if doc_names is None:
@@ -70,10 +112,8 @@ def generate_risk_flags(doc_names=None):
     all_flags = {}
 
     for doc in doc_names:
-        with open(f"{doc}.pkl", "rb") as f:
-            chunks = pickle.load(f)
-
-        sample_text = "\n\n".join(chunks[:20])
+        chunks = get_chunks_for_document(doc, limit=20)
+        sample_text = "\n\n".join(chunks)
 
         prompt = f"""You are a financial risk analyst. Analyze the following earnings call transcript excerpt and identify red flags or risks.
 

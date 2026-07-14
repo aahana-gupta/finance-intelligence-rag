@@ -40,6 +40,8 @@ def test_get_available_documents():
 
 def test_full_pipeline():
     build_index(SAMPLE_PDF)
-    answer = generate_answer("What was discussed in the earnings call?")
-    assert isinstance(answer, str)
-    assert len(answer) > 0
+    result = generate_answer("What was discussed in the earnings call?")
+    assert isinstance(result, dict)
+    assert isinstance(result["answer"], str) and len(result["answer"]) > 0
+    assert isinstance(result["contexts"], list) and len(result["contexts"]) > 0
+    assert isinstance(result["sources"], list)

@@ -1,5 +1,4 @@
 pymupdf
-faiss-cpu
 groq
 fastapi
 uvicorn
@@ -9,3 +8,4 @@ python-dotenv
 sentence-transformers
 slowapi
 pytest
+qdrant-client
