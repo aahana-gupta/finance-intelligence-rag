@@ -38,10 +38,19 @@ async def list_documents():
 @app.post("/ask")
 @limiter.limit("10/minute")
 async def ask_question(request: Request, query: QueryRequest):
-    answer = generate_answer(query.question)
-    return {"answer": answer}
+    result = generate_answer(query.question)
+    return {
+        "question": query.question,
+        "answer": result["answer"],       # kept as-is so the existing Streamlit UI doesn't break
+        "contexts": result["contexts"],   # clean list of retrieved chunks, for eval scripts (e.g. Ragas)
+        "sources": result["sources"],
+    }
 
 @app.get("/risks")
 async def get_risk_flags():
     flags = generate_risk_flags()
     return {"risks": flags}
+
+@app.get("/health")
+def health_check():
+    return {"status": "healthy"}
