@@ -2,7 +2,7 @@ from sentence_transformers import SentenceTransformer
 import numpy as np
 import os
 import uuid
-from qdrant_client.models import PointStruct
+from qdrant_client.models import PointStruct, Filter, FieldCondition, MatchValue
 from ingest import extract_text_from_pdf, chunk_text
 from rag import check_prompt_injection
 from db import client, ensure_collection, COLLECTION_NAME
@@ -20,6 +20,15 @@ def build_index(pdf_path):
     base_name = os.path.splitext(os.path.basename(pdf_path))[0]
 
     ensure_collection()
+
+    # Re-indexing an already-uploaded document must replace its points, not
+    # append duplicates on top of them (Qdrant has no upsert-by-content).
+    client.delete(
+        collection_name=COLLECTION_NAME,
+        points_selector=Filter(
+            must=[FieldCondition(key="doc_name", match=MatchValue(value=base_name))]
+        ),
+    )
 
     points = [
         PointStruct(
