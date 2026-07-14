@@ -5,8 +5,8 @@ import os
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-from embed import build_index
-from rag import generate_answer, get_available_documents, generate_risk_flags
+from backend.embed import build_index
+from backend.rag import generate_answer, get_available_documents, generate_risk_flags
 
 limiter = Limiter(key_func=get_remote_address)
 app = FastAPI()

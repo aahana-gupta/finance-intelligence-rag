@@ -17,42 +17,81 @@ An AI-powered financial document analysis tool built as part of an EY internship
 ## Tech Stack
 
 - **Ingestion** — PyMuPDF for PDF text extraction and chunking
-- **Embeddings** — Sentence Transformers (all-MiniLM-L6-v2)
-- **Vector Store** — FAISS for semantic similarity search
+- **Embeddings** — [fastembed](https://github.com/qdrant/fastembed) (ONNX Runtime, `all-MiniLM-L6-v2`) — chosen over Sentence Transformers/PyTorch specifically to fit Render's 512MB free-tier memory limit
+- **Vector Store** — Qdrant Cloud
 - **LLM** — Groq API (LLaMA 3.1 8B)
-- **Backend** — FastAPI
+- **Backend** — FastAPI, containerized with Docker
 - **Frontend** — Streamlit
 
 ## Project Structure
 
-- `ingest.py` — PDF extraction and chunking
-- `embed.py` — Embedding generation and FAISS indexing
-- `rag.py` — Retrieval and answer generation
-- `main.py` — FastAPI backend
-- `app.py` — Streamlit frontend
-- `.streamlit/config.toml` — UI theme configuration
+```
+backend/            FastAPI service
+  main.py           API routes (/upload, /ask, /risks, /documents, /health)
+  db.py             Qdrant client, collection setup, embedding model
+  embed.py          PDF -> chunks -> embeddings -> Qdrant upsert
+  rag.py            Retrieval, prompt injection checks, answer/risk generation
+  ingest.py         PDF text extraction and chunking
+
+frontend/
+  app.py            Streamlit UI, talks to the backend over HTTP
+
+eval/
+  eval.py           Ragas evaluation (faithfulness, answer relevancy, context precision)
+  requirements-eval.txt
+
+tests/
+  test_pipeline.py  Unit + integration tests (pytest)
+
+Dockerfile           Builds the backend image
+requirements-backend.txt   Backend-only deps (used by Docker)
+requirements.txt          Full dev environment (backend + frontend + tests)
+.streamlit/config.toml    UI theme configuration
+```
 
 ## Deployment
 
-- **Frontend:** Deployed on Render at [https://finance-intelligence-rag-frontend.onrender.com](https://finance-intelligence-rag-frontend.onrender.com) — note this requires the backend running locally to function
-- **Backend:** Runs locally due to memory constraints on free hosting tiers (Sentence Transformers requires ~400MB RAM, exceeding Render's 512MB free plan limit)
+- **Frontend:** Deployed on Render (Streamlit) at [https://finance-intelligence-rag-frontend.onrender.com](https://finance-intelligence-rag-frontend.onrender.com)
+- **Backend:** Deployed on Render as a separate Web Service, built from the Dockerfile in this repo (Render's Runtime must be set to **Docker**, not Python, or it'll ignore the Dockerfile).
+- **Vector store:** Qdrant Cloud (not self-hosted) — set `QDRANT_URL` and `QDRANT_API_KEY` on the backend service.
 
-**To run the full app:**
-1. Start the backend: `uvicorn main:app --reload`
-2. Start the frontend: `streamlit run app.py`
-3. Open `http://localhost:8501` in your browser
+The frontend finds the backend via the `BACKEND_URL` environment variable (`frontend/app.py`), which must be set to the backend service's public Render URL. It defaults to `http://127.0.0.1:8000` for local development.
+
+**Required environment variables on the backend service:** `QDRANT_URL`, `QDRANT_API_KEY`, `GROQ_API_KEY`.
+**Required environment variable on the frontend service:** `BACKEND_URL` (the backend's public URL).
+
+### Running locally
+
+1. Start the backend (from the repo root, so `backend` resolves as a package):
+   ```bash
+   uvicorn backend.main:app --reload
+   ```
+2. Start the frontend:
+   ```bash
+   streamlit run frontend/app.py
+   ```
+3. Open `http://localhost:8501` in your browser.
+
+### Running the backend via Docker locally
+
+```bash
+docker build -t finance-rag-backend .
+docker run --rm -p 8000:8000 --env-file .env finance-rag-backend
+```
 
 ## Setup
 
 1. Clone the repo
 2. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
+   ```bash
+   pip install -r requirements.txt
+   ```
 3. Create a `.env` file:
-```
-GROQ_API_KEY=your_api_key_here
-```
+   ```
+   GROQ_API_KEY=your_api_key_here
+   QDRANT_URL=your_qdrant_cloud_url
+   QDRANT_API_KEY=your_qdrant_api_key
+   ```
 
 ## Security
 
@@ -62,6 +101,7 @@ GROQ_API_KEY=your_api_key_here
 - **File type validation** — Only `.pdf` uploads are accepted; all other file types are rejected
 - **Rate limiting** — `/ask` and `/upload` are capped at 10 requests/minute per client via `slowapi` to guard against abuse
 - **Source attribution** — Every generated answer is appended with the source document names for traceability and auditability
+- **Secrets** — `.env` is gitignored and excluded from the Docker build context (`.dockerignore`); real credentials are injected at runtime (locally via `.env`, on Render via the dashboard's Environment tab), never baked into the image
 
 ## Testing
 
@@ -77,4 +117,12 @@ The tests cover:
 - **Document listing** — `get_available_documents` returns a list
 - **Full pipeline (integration)** — uploading and indexing a sample PDF followed by `generate_answer` returns a non-empty answer end to end
 
-Planned: a RAGAS-based evaluation (faithfulness, answer relevancy, context precision) once a ground-truth QA dataset is available.
+## Evaluation
+
+`eval/eval.py` runs a small Ragas-based evaluation against a live backend (faithfulness, answer relevancy, context precision), including one deliberately out-of-scope question to check the system correctly refuses instead of hallucinating.
+
+```bash
+pip install -r eval/requirements-eval.txt
+uvicorn backend.main:app &          # backend must be running
+python eval/eval.py
+```

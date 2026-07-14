@@ -1,9 +1,9 @@
 import os
 import pytest
 
-from ingest import extract_text_from_pdf, chunk_text
-from rag import check_prompt_injection, get_available_documents, generate_answer
-from embed import build_index
+from backend.ingest import extract_text_from_pdf, chunk_text
+from backend.rag import check_prompt_injection, get_available_documents, generate_answer
+from backend.embed import build_index
 
 SAMPLE_PDF = os.path.join(
     os.path.dirname(__file__), "..", "Infosys Q3 FY26 Earnings Call.pdf"
