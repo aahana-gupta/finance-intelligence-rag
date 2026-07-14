@@ -3,9 +3,7 @@ groq
 fastapi
 uvicorn
 python-multipart
-streamlit
 python-dotenv
 fastembed
 slowapi
-pytest
 qdrant-client

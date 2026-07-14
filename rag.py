@@ -1,13 +1,11 @@
 import os
 import json
-from sentence_transformers import SentenceTransformer
 from groq import Groq
 from dotenv import load_dotenv
 from qdrant_client.models import Filter, FieldCondition, MatchValue
-from db import client, COLLECTION_NAME
+from db import client, COLLECTION_NAME, embedding_model as model
 load_dotenv()
 
-model = SentenceTransformer("all-MiniLM-L6-v2")
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 INJECTION_PATTERNS = [
@@ -46,7 +44,7 @@ def get_available_documents():
     return sorted(doc_names)
 
 def retrieve_from_document(query, doc_name, top_k=3):
-    query_embedding = model.encode([query])[0].tolist()
+    query_embedding = list(model.embed([query]))[0].tolist()
     results = client.query_points(
         collection_name=COLLECTION_NAME,
         query=query_embedding,
