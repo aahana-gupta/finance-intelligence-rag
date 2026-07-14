@@ -45,20 +45,25 @@ tests/
 
 Dockerfile           Builds the backend image
 requirements-backend.txt   Backend-only deps (used by Docker)
+requirements-frontend.txt  Frontend-only deps (used by the Render frontend service)
 requirements.txt          Full dev environment (backend + frontend + tests)
 .streamlit/config.toml    UI theme configuration
 ```
 
 ## Deployment
 
-- **Frontend:** Deployed on Render (Streamlit) at [https://finance-intelligence-rag-frontend.onrender.com](https://finance-intelligence-rag-frontend.onrender.com)
+- **Frontend:** Deployed on Render (Streamlit), as a Python Web Service.
 - **Backend:** Deployed on Render as a separate Web Service, built from the Dockerfile in this repo (Render's Runtime must be set to **Docker**, not Python, or it'll ignore the Dockerfile).
 - **Vector store:** Qdrant Cloud (not self-hosted) — set `QDRANT_URL` and `QDRANT_API_KEY` on the backend service.
 
 The frontend finds the backend via the `BACKEND_URL` environment variable (`frontend/app.py`), which must be set to the backend service's public Render URL. It defaults to `http://127.0.0.1:8000` for local development.
 
+**Frontend Render service settings:**
+- Build Command: `pip install -r requirements-frontend.txt` (not `requirements.txt` — that pulls in unused backend/test deps and slows the build considerably)
+- Start Command: `streamlit run frontend/app.py --server.port $PORT --server.address 0.0.0.0 --server.enableCORS false --server.enableXsrfProtection false` (the CORS/XSRF flags are required behind Render's proxy, or the app loads blank with no visible error)
+- Environment: `BACKEND_URL` = the backend service's public URL
+
 **Required environment variables on the backend service:** `QDRANT_URL`, `QDRANT_API_KEY`, `GROQ_API_KEY`.
-**Required environment variable on the frontend service:** `BACKEND_URL` (the backend's public URL).
 
 ### Running locally
 
